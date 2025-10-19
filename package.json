@@ -1,5 +1,5 @@
 {
-	"name": "canary",
+	"name": "@fairhurt/canary",
 	"version": "0.0.1",
 	"description": "Modern feature flagging library for SvelteKit with A/B testing, user groups, and remote functions",
 	"license": "MIT",
@@ -24,13 +24,16 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"prepack": "svelte-kit sync && svelte-package && publint",
+		"prepublishOnly": "npm run check && npm run test && npm run lint",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
+		"prettier:fix": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "bun run test:unit -- --run && bun run test:e2e",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"publish:check": "npm run check && npm run test && npm run lint && npm publish --dry-run"
 	},
 	"files": [
 		"dist",
@@ -52,6 +55,9 @@
 	"peerDependencies": {
 		"@sveltejs/kit": "^2.0.0",
 		"svelte": "^5.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.0",

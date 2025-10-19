@@ -29,13 +29,11 @@
 			Simple on/off feature toggle. <code>new-dashboard</code> is enabled at 100% rollout.
 		</p>
 		<Feature flag="new-dashboard">
-			{#snippet children()}
-				<div class="card success">
-					<h3>✓ New Dashboard Enabled</h3>
-					<p>You're seeing the new dashboard experience!</p>
-					<p class="meta">Feature: <code>enabled: true</code>, <code>rollout: 100</code></p>
-				</div>
-			{/snippet}
+			<div class="card success">
+				<h3>✓ New Dashboard Enabled</h3>
+				<p>You're seeing the new dashboard experience!</p>
+				<p class="meta">Feature: <code>enabled: true</code>, <code>rollout: 100</code></p>
+			</div>
 
 			{#snippet fallback()}
 				<div class="card muted">
@@ -54,16 +52,14 @@
 			<strong>Users in beta/internal groups bypass rollout and get 100% access.</strong>
 		</p>
 		<Feature flag="beta-checkout">
-			{#snippet children()}
-				<div class="card success">
-					<h3>🎉 Beta Checkout Unlocked!</h3>
-					<p>You have access to the new checkout flow!</p>
-					<p class="meta">
-						Feature: <code>enabled: true</code>, <code>rollout: 25</code>,
-						<code>userGroups: ["beta", "internal"]</code>
-					</p>
-				</div>
-			{/snippet}
+			<div class="card success">
+				<h3>🎉 Beta Checkout Unlocked!</h3>
+				<p>You have access to the new checkout flow!</p>
+				<p class="meta">
+					Feature: <code>enabled: true</code>, <code>rollout: 25</code>,
+					<code>userGroups: ["beta", "internal"]</code>
+				</p>
+			</div>
 
 			{#snippet fallback()}
 				<div class="card muted">
@@ -86,15 +82,13 @@
 			the enabled flag.
 		</p>
 		<Feature flag="experimental-feature">
-			{#snippet children()}
-				<div class="card success">
-					<h3>🧪 Experimental Feature Active!</h3>
-					<p>This feature is disabled globally, but you're in the internal group!</p>
-					<p class="meta">
-						Feature: <code>enabled: false</code>, <code>userGroups: ["internal"]</code>
-					</p>
-				</div>
-			{/snippet}
+			<div class="card success">
+				<h3>🧪 Experimental Feature Active!</h3>
+				<p>This feature is disabled globally, but you're in the internal group!</p>
+				<p class="meta">
+					Feature: <code>enabled: false</code>, <code>userGroups: ["internal"]</code>
+				</p>
+			</div>
 
 			{#snippet fallback()}
 				<div class="card muted">
@@ -172,12 +166,10 @@
 				</div>
 			{/snippet}
 
-			{#snippet children()}
-				<div class="card success">
-					<h3>✓ Loaded Successfully</h3>
-					<p>Feature check complete! (This happens so fast you might not see the loading state)</p>
-				</div>
-			{/snippet}
+			<div class="card success">
+				<h3>✓ Loaded Successfully</h3>
+				<p>Feature check complete! (This happens so fast you might not see the loading state)</p>
+			</div>
 
 			{#snippet error(err)}
 				<div class="card error">
