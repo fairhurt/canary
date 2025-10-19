@@ -21,4 +21,4 @@ export type {
 	FeatureCheckResult,
 	ConfigProvider,
 	FeatureFlagsOptions
-} from './types/index.js';
+} from './types/index.ts';
