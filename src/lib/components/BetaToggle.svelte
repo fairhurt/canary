@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getUserInfo, joinGroup, leaveGroup } from '../features.remote.js';
+	import { invalidateAll } from '$app/navigation';
 
 	interface Props {
 		/** The group name (e.g., 'beta', 'internal') */
@@ -26,8 +27,8 @@
 			} else {
 				await joinGroup(group);
 			}
-			// Refresh user info
-			userInfo.refresh();
+			// Invalidate all queries to force refresh
+			await invalidateAll();
 		} catch (error) {
 			console.error('Failed to toggle group:', error);
 		} finally {
