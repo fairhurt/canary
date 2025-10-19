@@ -1,6 +1,6 @@
 {
-	"name": "@fairhurt/canary",
-	"version": "0.0.1",
+	"name": "sveltekit-canary",
+	"version": "0.0.2",
 	"description": "Modern feature flagging library for SvelteKit with A/B testing, user groups, and remote functions",
 	"license": "MIT",
 	"author": "Tyson Fairhurst",
@@ -55,9 +55,6 @@
 	"peerDependencies": {
 		"@sveltejs/kit": "^2.0.0",
 		"svelte": "^5.0.0"
-	},
-	"publishConfig": {
-		"access": "public"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.0",
