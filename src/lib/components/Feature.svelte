@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { checkFeature } from '../features.remote.js';
+	import { checkFeature, getUserInfo } from '../features.remote.js';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
@@ -19,8 +19,15 @@
 
 	let { flag, children, fallback, variants, loading, error }: Props = $props();
 
-	// Check the feature using the remote function
-	const featureCheck = $derived(checkFeature(flag));
+	// Get user info to create a reactive dependency on group changes
+	const userInfo = getUserInfo();
+	
+	// Check the feature - will re-run when userInfo changes
+	const featureCheck = $derived.by(async () => {
+		// Wait for userInfo to ensure we have the latest group membership
+		await userInfo;
+		return checkFeature(flag);
+	});
 </script>
 
 {#await featureCheck}
