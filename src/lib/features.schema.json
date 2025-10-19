@@ -1,0 +1,84 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Feature Flags Configuration",
+	"description": "Configuration schema for Canary feature flags library",
+	"type": "object",
+	"required": ["features"],
+	"properties": {
+		"features": {
+			"type": "object",
+			"description": "Feature flag definitions",
+			"patternProperties": {
+				"^[a-zA-Z0-9-_]+$": {
+					"type": "object",
+					"required": ["enabled"],
+					"properties": {
+						"enabled": {
+							"type": "boolean",
+							"description": "Whether the feature is globally enabled"
+						},
+						"rollout": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 100,
+							"description": "Percentage of users to enable (0-100)"
+						},
+						"variants": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "Available variants for A/B testing"
+						},
+						"defaultVariant": {
+							"type": "string",
+							"description": "Default variant to assign"
+						},
+						"userGroups": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "User groups that have access to this feature"
+						},
+						"description": {
+							"type": "string",
+							"description": "Human-readable description of the feature"
+						}
+					}
+				}
+			}
+		},
+		"routes": {
+			"type": "object",
+			"description": "Route redirect definitions",
+			"patternProperties": {
+				"^/.*$": {
+					"type": "object",
+					"properties": {
+						"enabled": {
+							"type": "string",
+							"description": "Route to redirect to if feature is enabled"
+						},
+						"disabled": {
+							"type": "string",
+							"description": "Route to redirect to if feature is disabled"
+						},
+						"feature": {
+							"type": "string",
+							"description": "Feature flag key that controls this route"
+						},
+						"requiresGroup": {
+							"type": "string",
+							"description": "User group required to access this route"
+						}
+					},
+					"additionalProperties": {
+						"type": "string",
+						"description": "Group-specific route redirects"
+					}
+				}
+			}
+		}
+	}
+}
