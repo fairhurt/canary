@@ -10,7 +10,13 @@ export { default as BetaToggle } from './components/BetaToggle.svelte';
 export { default as FeatureDebug } from './components/FeatureDebug.svelte';
 
 // Remote functions (for use in components)
-export { checkFeature, checkFeatures, getUserInfo, joinGroup, leaveGroup } from './features.remote.js';
+export {
+	checkFeature,
+	checkFeatures,
+	getUserInfo,
+	joinGroup,
+	leaveGroup
+} from './features.remote.js';
 
 // Types
 export type {

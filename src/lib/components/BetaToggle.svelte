@@ -36,9 +36,7 @@
 </script>
 
 {#await userInfo}
-	<button disabled class={className}>
-		Loading...
-	</button>
+	<button disabled class={className}> Loading... </button>
 {:then info}
 	<button onclick={toggleGroup} disabled={isLoading} class={className}>
 		{#if isLoading}
@@ -49,10 +47,8 @@
 			{label || `Join ${group}`}
 		{/if}
 	</button>
-{:catch error}
-	<button disabled class={className}>
-		Error loading status
-	</button>
+{:catch}
+	<button disabled class={className}> Error loading status </button>
 {/await}
 
 <style>

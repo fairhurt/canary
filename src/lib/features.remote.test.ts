@@ -7,7 +7,7 @@ describe('features.remote logic', () => {
 
 	beforeEach(() => {
 		invalidateCache();
-		
+
 		testConfig = {
 			features: {
 				'always-on': {
@@ -62,7 +62,7 @@ describe('features.remote logic', () => {
 			it('should enable feature when enabled: true, rollout: 100', async () => {
 				const config = await loadConfig();
 				const feature = config.features['always-on'];
-				
+
 				expect(feature.enabled).toBe(true);
 				expect(feature.rollout).toBe(100);
 			});
@@ -70,7 +70,7 @@ describe('features.remote logic', () => {
 			it('should disable feature when enabled: false', async () => {
 				const config = await loadConfig();
 				const feature = config.features['always-off'];
-				
+
 				expect(feature.enabled).toBe(false);
 			});
 		});
@@ -79,7 +79,7 @@ describe('features.remote logic', () => {
 			it('should have 50% rollout feature', async () => {
 				const config = await loadConfig();
 				const feature = config.features['partial-rollout'];
-				
+
 				expect(feature.enabled).toBe(true);
 				expect(feature.rollout).toBe(50);
 			});
@@ -88,7 +88,7 @@ describe('features.remote logic', () => {
 		describe('userGroups bypass logic', () => {
 			it('should define features with userGroups', async () => {
 				const config = await loadConfig();
-				
+
 				expect(config.features['beta-only'].userGroups).toContain('beta');
 				expect(config.features['internal-disabled'].userGroups).toContain('internal');
 			});
@@ -96,7 +96,7 @@ describe('features.remote logic', () => {
 			it('should have userGroups that bypass enabled flag', async () => {
 				const config = await loadConfig();
 				const feature = config.features['internal-disabled'];
-				
+
 				expect(feature.enabled).toBe(false);
 				expect(feature.userGroups).toContain('internal');
 			});
@@ -104,7 +104,7 @@ describe('features.remote logic', () => {
 			it('should have userGroups that bypass rollout percentage', async () => {
 				const config = await loadConfig();
 				const feature = config.features['beta-with-rollout'];
-				
+
 				expect(feature.enabled).toBe(true);
 				expect(feature.rollout).toBe(25);
 				expect(feature.userGroups).toContain('beta');
@@ -116,7 +116,7 @@ describe('features.remote logic', () => {
 			it('should define variants for A/B test', async () => {
 				const config = await loadConfig();
 				const feature = config.features['ab-test'];
-				
+
 				expect(feature.variants).toEqual(['control', 'variant-a', 'variant-b']);
 				expect(feature.defaultVariant).toBe('control');
 			});
@@ -124,7 +124,7 @@ describe('features.remote logic', () => {
 			it('should be enabled with 100% rollout', async () => {
 				const config = await loadConfig();
 				const feature = config.features['ab-test'];
-				
+
 				expect(feature.enabled).toBe(true);
 				expect(feature.rollout).toBe(100);
 			});
@@ -134,7 +134,7 @@ describe('features.remote logic', () => {
 	describe('config provider integration', () => {
 		it('should load config from provider', async () => {
 			const config = await loadConfig();
-			
+
 			expect(config).toBeDefined();
 			expect(config.features).toEqual(testConfig.features);
 		});
@@ -164,10 +164,10 @@ describe('features.remote logic', () => {
 		it('should prioritize userGroups over enabled flag', async () => {
 			const config = await loadConfig();
 			const feature = config.features['internal-disabled'];
-			
+
 			// Feature is disabled globally
 			expect(feature.enabled).toBe(false);
-			
+
 			// But internal group can still access
 			expect(feature.userGroups).toContain('internal');
 		});
@@ -175,10 +175,10 @@ describe('features.remote logic', () => {
 		it('should prioritize userGroups over rollout percentage', async () => {
 			const config = await loadConfig();
 			const feature = config.features['beta-with-rollout'];
-			
+
 			// Feature has 25% rollout
 			expect(feature.rollout).toBe(25);
-			
+
 			// But beta/internal groups get 100% access
 			expect(feature.userGroups).toContain('beta');
 			expect(feature.userGroups).toContain('internal');
@@ -195,7 +195,7 @@ describe('features.remote logic', () => {
 
 			const config = await loadConfig();
 			const feature = config.features['no-rollout'];
-			
+
 			expect(feature.enabled).toBe(true);
 			expect(feature.rollout).toBeUndefined();
 		});
@@ -210,7 +210,7 @@ describe('features.remote logic', () => {
 
 			const config = await loadConfig();
 			const feature = config.features['empty-groups'];
-			
+
 			expect(feature.userGroups).toEqual([]);
 		});
 
@@ -224,7 +224,7 @@ describe('features.remote logic', () => {
 
 			const config = await loadConfig();
 			const feature = config.features['empty-variants'];
-			
+
 			expect(feature.variants).toEqual([]);
 		});
 	});

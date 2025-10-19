@@ -19,7 +19,7 @@ import { assignVariant, isInRollout } from './utils/hash.js';
 /**
  * Check if a feature is enabled for the current user
  * Returns the enabled status and assigned variant (if applicable)
- * 
+ *
  * Logic:
  * - If userGroups are specified:
  *   - Users in those groups can access the feature even if enabled=false
@@ -54,7 +54,7 @@ export const checkFeature = query(v.string(), async (featureKey): Promise<Featur
 				reason: 'User not in required group'
 			};
 		}
-		
+
 		// User is in required group - they bypass rollout percentage
 		// and can access even if globally disabled
 		// Skip the rollout check for users in required groups
@@ -121,10 +121,10 @@ export const getUserInfo = query(async () => {
  */
 export const joinGroup = command(v.string(), async (group) => {
 	const event = getRequestEvent();
-	
+
 	// Ensure user ID is persisted
 	ensureUserId(event);
-	
+
 	const context = addUserToGroup(event, group);
 
 	// Refresh user info query so all components update
@@ -141,10 +141,10 @@ export const joinGroup = command(v.string(), async (group) => {
  */
 export const leaveGroup = command(v.string(), async (group) => {
 	const event = getRequestEvent();
-	
+
 	// Ensure user ID is persisted
 	ensureUserId(event);
-	
+
 	const context = removeUserFromGroup(event, group);
 
 	// Refresh user info query so all components update

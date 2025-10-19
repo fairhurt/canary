@@ -71,6 +71,8 @@ export function initCanary(options?: FeatureFlagsOptions): void {
  * });
  * ```
  */
-export function defineConfig<T extends import('./types/index.js').FeatureFlagsConfig>(config: T): T {
+export function defineConfig<T extends import('./types/index.js').FeatureFlagsConfig>(
+	config: T
+): T {
 	return config;
 }

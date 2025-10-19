@@ -50,7 +50,8 @@
 	<section>
 		<h2>2️⃣ Percentage Rollout</h2>
 		<p class="description">
-			Feature <code>beta-checkout</code> has a 25% rollout. <strong>Users in beta/internal groups bypass rollout and get 100% access.</strong>
+			Feature <code>beta-checkout</code> has a 25% rollout.
+			<strong>Users in beta/internal groups bypass rollout and get 100% access.</strong>
 		</p>
 		<Feature flag="beta-checkout">
 			{#snippet children()}
@@ -58,7 +59,7 @@
 					<h3>🎉 Beta Checkout Unlocked!</h3>
 					<p>You have access to the new checkout flow!</p>
 					<p class="meta">
-						Feature: <code>enabled: true</code>, <code>rollout: 25</code>, 
+						Feature: <code>enabled: true</code>, <code>rollout: 25</code>,
 						<code>userGroups: ["beta", "internal"]</code>
 					</p>
 				</div>
@@ -67,7 +68,10 @@
 			{#snippet fallback()}
 				<div class="card muted">
 					<h3>🔒 Beta Checkout Locked</h3>
-					<p>This feature has a 25% rollout. Join the beta group to guarantee access, or you might be randomly included!</p>
+					<p>
+						This feature has a 25% rollout. Join the beta group to guarantee access, or you might be
+						randomly included!
+					</p>
 				</div>
 			{/snippet}
 		</Feature>
@@ -77,7 +81,9 @@
 	<section>
 		<h2>3️⃣ User Groups (Disabled Feature Override)</h2>
 		<p class="description">
-			Feature <code>experimental-feature</code> is disabled (<code>enabled: false</code>), but <strong>internal group members can still access it</strong>. This tests that userGroups bypass the enabled flag.
+			Feature <code>experimental-feature</code> is disabled (<code>enabled: false</code>), but
+			<strong>internal group members can still access it</strong>. This tests that userGroups bypass
+			the enabled flag.
 		</p>
 		<Feature flag="experimental-feature">
 			{#snippet children()}
@@ -103,11 +109,17 @@
 	<section>
 		<h2>4️⃣ A/B Testing with Variants</h2>
 		<p class="description">
-			Feature <code>ab-test-homepage</code> has 3 variants: control, variant-a, variant-b. Your variant is assigned deterministically based on your user ID.
+			Feature <code>ab-test-homepage</code> has 3 variants: control, variant-a, variant-b. Your variant
+			is assigned deterministically based on your user ID.
 		</p>
 		<Feature flag="ab-test-homepage">
 			{#snippet children({ variant }: { variant?: string })}
-				<div class="card" class:variant-a={variant === 'variant-a'} class:variant-b={variant === 'variant-b'} class:control={variant === 'control'}>
+				<div
+					class="card"
+					class:variant-a={variant === 'variant-a'}
+					class:variant-b={variant === 'variant-b'}
+					class:control={variant === 'control'}
+				>
 					<h3>🎲 A/B Test Active</h3>
 					<p>You're seeing: <strong>{variant || 'control'}</strong></p>
 					<p>Your variant is consistent across sessions and won't change randomly.</p>
@@ -124,7 +136,12 @@
 			<p class="small">You can use if/else blocks to render different content for each variant.</p>
 			<Feature flag="ab-test-homepage">
 				{#snippet children({ variant })}
-					<div class="variant-box" class:control={variant === 'control'} class:variant-a={variant === 'variant-a'} class:variant-b={variant === 'variant-b'}>
+					<div
+						class="variant-box"
+						class:control={variant === 'control'}
+						class:variant-a={variant === 'variant-a'}
+						class:variant-b={variant === 'variant-b'}
+					>
 						{#if variant === 'control'}
 							<strong>🎯 Control Group</strong>
 							<p>You see the original experience (baseline)</p>
@@ -181,16 +198,19 @@
 					<strong>Basic Flag:</strong> Section 1 should always show "New Dashboard Enabled" (100% rollout)
 				</li>
 				<li>
-					<strong>Rollout Bypass:</strong> Click "Join beta" - Section 2 should unlock immediately without page refresh (bypasses 25% rollout)
+					<strong>Rollout Bypass:</strong> Click "Join beta" - Section 2 should unlock immediately without
+					page refresh (bypasses 25% rollout)
 				</li>
 				<li>
-					<strong>Disabled Override:</strong> Click "Join internal" - Section 3 should appear (overrides <code>enabled: false</code>)
+					<strong>Disabled Override:</strong> Click "Join internal" - Section 3 should appear
+					(overrides <code>enabled: false</code>)
 				</li>
 				<li>
 					<strong>A/B Variants:</strong> Section 4 shows your assigned variant (consistent across refreshes)
 				</li>
 				<li>
-					<strong>Group Toggle:</strong> Leave beta/internal - features should hide instantly without refresh
+					<strong>Group Toggle:</strong> Leave beta/internal - features should hide instantly without
+					refresh
 				</li>
 			</ol>
 		</div>
@@ -222,7 +242,10 @@
 	:global(body) {
 		margin: 0;
 		padding: 0;
-		font-family: system-ui, -apple-system, sans-serif;
+		font-family:
+			system-ui,
+			-apple-system,
+			sans-serif;
 		background: #f5f5f5;
 	}
 

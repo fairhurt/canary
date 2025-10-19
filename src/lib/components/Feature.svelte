@@ -21,7 +21,7 @@
 
 	// Get user info to create a reactive dependency on group changes
 	const userInfo = getUserInfo();
-	
+
 	// Check the feature - will re-run when userInfo changes
 	const featureCheck = $derived.by(async () => {
 		// Wait for userInfo to ensure we have the latest group membership

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { getUserInfo } from '../features.remote.js';
-	import { loadConfig } from '../utils/configLoader.js';
 
 	interface Props {
 		/** Position of the debug panel */
@@ -47,7 +46,7 @@
 					<dt>Groups:</dt>
 					<dd>
 						{#if info.groups.length > 0}
-							{#each info.groups as group}
+							{#each info.groups as group (group)}
 								<span class="badge">{group}</span>
 							{/each}
 						{:else}
@@ -59,7 +58,7 @@
 					<dd>
 						{#if Object.keys(info.variants).length > 0}
 							<ul>
-								{#each Object.entries(info.variants) as [feature, variant]}
+								{#each Object.entries(info.variants) as [feature, variant] (feature)}
 									<li><strong>{feature}:</strong> {variant}</li>
 								{/each}
 							</ul>
@@ -83,7 +82,10 @@
 	.debug-panel {
 		position: fixed;
 		z-index: 9999;
-		font-family: system-ui, -apple-system, sans-serif;
+		font-family:
+			system-ui,
+			-apple-system,
+			sans-serif;
 		font-size: 0.875rem;
 	}
 

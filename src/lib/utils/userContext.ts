@@ -50,9 +50,9 @@ export function getUserContext(event: RequestEvent): UserContext {
  */
 export function ensureUserId(event: RequestEvent): string {
 	const { cookies } = event;
-	
+
 	let userId = cookies.get(userIdCookie);
-	
+
 	if (!userId) {
 		userId = generateUserId();
 		cookies.set(userIdCookie, userId, {
@@ -62,7 +62,7 @@ export function ensureUserId(event: RequestEvent): string {
 			maxAge: 60 * 60 * 24 * 365 // 1 year
 		});
 	}
-	
+
 	return userId;
 }
 

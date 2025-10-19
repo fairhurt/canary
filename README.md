@@ -31,16 +31,16 @@ In your `svelte.config.js`:
 
 ```javascript
 export default {
-  kit: {
-    experimental: {
-      remoteFunctions: true
-    }
-  },
-  compilerOptions: {
-    experimental: {
-      async: true
-    }
-  }
+	kit: {
+		experimental: {
+			remoteFunctions: true
+		}
+	},
+	compilerOptions: {
+		experimental: {
+			async: true
+		}
+	}
 };
 ```
 
@@ -50,17 +50,17 @@ Create `src/lib/features.config.json`:
 
 ```json
 {
-  "features": {
-    "new-dashboard": {
-      "enabled": true,
-      "rollout": 100
-    },
-    "beta-feature": {
-      "enabled": true,
-      "rollout": 25,
-      "userGroups": ["beta"]
-    }
-  }
+	"features": {
+		"new-dashboard": {
+			"enabled": true,
+			"rollout": 100
+		},
+		"beta-feature": {
+			"enabled": true,
+			"rollout": 25,
+			"userGroups": ["beta"]
+		}
+	}
 }
 ```
 
@@ -83,19 +83,19 @@ export const handle = sequence(handleFeatureRouting);
 
 ```svelte
 <script>
-  import { Feature } from 'canary';
+	import { Feature } from 'canary';
 </script>
 
 <Feature flag="new-dashboard">
-  {#snippet children()}
-    <h1>New Dashboard</h1>
-    <p>Welcome to the new experience!</p>
-  {/snippet}
-  
-  {#snippet fallback()}
-    <h1>Dashboard</h1>
-    <p>Classic view</p>
-  {/snippet}
+	{#snippet children()}
+		<h1>New Dashboard</h1>
+		<p>Welcome to the new experience!</p>
+	{/snippet}
+
+	{#snippet fallback()}
+		<h1>Dashboard</h1>
+		<p>Classic view</p>
+	{/snippet}
 </Feature>
 ```
 
@@ -105,16 +105,16 @@ export const handle = sequence(handleFeatureRouting);
 
 ```json
 {
-  "features": {
-    "feature-key": {
-      "enabled": true,              // Required: globally enable/disable
-      "rollout": 50,                // Optional: percentage (0-100)
-      "variants": ["a", "b", "c"],  // Optional: A/B test variants
-      "defaultVariant": "a",        // Optional: default variant
-      "userGroups": ["beta"],       // Optional: required groups
-      "description": "..."          // Optional: documentation
-    }
-  }
+	"features": {
+		"feature-key": {
+			"enabled": true, // Required: globally enable/disable
+			"rollout": 50, // Optional: percentage (0-100)
+			"variants": ["a", "b", "c"], // Optional: A/B test variants
+			"defaultVariant": "a", // Optional: default variant
+			"userGroups": ["beta"], // Optional: required groups
+			"description": "..." // Optional: documentation
+		}
+	}
 }
 ```
 
@@ -122,17 +122,17 @@ export const handle = sequence(handleFeatureRouting);
 
 ```json
 {
-  "routes": {
-    "/dashboard": {
-      "feature": "new-dashboard",
-      "enabled": "/dashboard-v2",
-      "disabled": "/dashboard-v1"
-    },
-    "/beta": {
-      "requiresGroup": "beta",
-      "beta": "/beta-features"
-    }
-  }
+	"routes": {
+		"/dashboard": {
+			"feature": "new-dashboard",
+			"enabled": "/dashboard-v2",
+			"disabled": "/dashboard-v1"
+		},
+		"/beta": {
+			"requiresGroup": "beta",
+			"beta": "/beta-features"
+		}
+	}
 }
 ```
 
@@ -148,12 +148,12 @@ initCanary();
 
 // Custom config provider
 initCanary({
-  configProvider: async () => {
-    const res = await fetch('https://api.example.com/features');
-    return await res.json();
-  },
-  cacheTTL: 60,  // Cache for 60 seconds
-  debug: true
+	configProvider: async () => {
+		const res = await fetch('https://api.example.com/features');
+		return await res.json();
+	},
+	cacheTTL: 60, // Cache for 60 seconds
+	debug: true
 });
 ```
 
@@ -184,17 +184,17 @@ await leaveGroup('beta');
 
 ```svelte
 <Feature flag="new-dashboard">
-  {#snippet children({ variant })}
-    <div>Feature enabled! Variant: {variant}</div>
-  {/snippet}
-  
-  {#snippet fallback()}
-    <div>Feature disabled</div>
-  {/snippet}
-  
-  {#snippet loading()}
-    <div>Loading...</div>
-  {/snippet}
+	{#snippet children({ variant })}
+		<div>Feature enabled! Variant: {variant}</div>
+	{/snippet}
+
+	{#snippet fallback()}
+		<div>Feature disabled</div>
+	{/snippet}
+
+	{#snippet loading()}
+		<div>Loading...</div>
+	{/snippet}
 </Feature>
 ```
 
@@ -218,8 +218,8 @@ import { handleFeatureRouting } from 'canary';
 import { sequence } from '@sveltejs/kit/hooks';
 
 export const handle = sequence(
-  handleFeatureRouting,
-  // your other hooks...
+	handleFeatureRouting
+	// your other hooks...
 );
 ```
 
@@ -229,28 +229,28 @@ export const handle = sequence(
 
 ```json
 {
-  "features": {
-    "homepage-test": {
-      "enabled": true,
-      "rollout": 100,
-      "variants": ["control", "variant-a", "variant-b"],
-      "defaultVariant": "control"
-    }
-  }
+	"features": {
+		"homepage-test": {
+			"enabled": true,
+			"rollout": 100,
+			"variants": ["control", "variant-a", "variant-b"],
+			"defaultVariant": "control"
+		}
+	}
 }
 ```
 
 ```svelte
 <Feature flag="homepage-test" let:variant>
-  {#snippet children({ variant })}
-    {#if variant === 'variant-a'}
-      <HomePageA />
-    {:else if variant === 'variant-b'}
-      <HomePageB />
-    {:else}
-      <HomePageControl />
-    {/if}
-  {/snippet}
+	{#snippet children({ variant })}
+		{#if variant === 'variant-a'}
+			<HomePageA />
+		{:else if variant === 'variant-b'}
+			<HomePageB />
+		{:else}
+			<HomePageControl />
+		{/if}
+	{/snippet}
 </Feature>
 ```
 
@@ -261,12 +261,12 @@ export const handle = sequence(
 import { initCanary } from 'canary';
 
 initCanary({
-  configProvider: async () => {
-    // Fetch from your API
-    const res = await fetch(process.env.FEATURE_FLAGS_API);
-    return await res.json();
-  },
-  cacheTTL: 300 // Cache for 5 minutes
+	configProvider: async () => {
+		// Fetch from your API
+		const res = await fetch(process.env.FEATURE_FLAGS_API);
+		return await res.json();
+	},
+	cacheTTL: 300 // Cache for 5 minutes
 });
 ```
 
@@ -276,12 +276,12 @@ Users are deterministically assigned based on their user ID, ensuring consistent
 
 ```json
 {
-  "features": {
-    "gradual-rollout": {
-      "enabled": true,
-      "rollout": 10  // Only 10% of users see this
-    }
-  }
+	"features": {
+		"gradual-rollout": {
+			"enabled": true,
+			"rollout": 10 // Only 10% of users see this
+		}
+	}
 }
 ```
 
@@ -302,11 +302,11 @@ import type { FeatureFlagsConfig, FeatureCheckResult } from 'canary';
 
 // Type-safe config
 const config: FeatureFlagsConfig = {
-  features: {
-    'my-feature': {
-      enabled: true
-    }
-  }
+	features: {
+		'my-feature': {
+			enabled: true
+		}
+	}
 };
 ```
 

@@ -1,6 +1,23 @@
 {
 	"name": "canary",
 	"version": "0.0.1",
+	"description": "Modern feature flagging library for SvelteKit with A/B testing, user groups, and remote functions",
+	"license": "MIT",
+	"author": "Tyson Fairhurst",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/fairhurt/canary.git"
+	},
+	"keywords": [
+		"svelte",
+		"sveltekit",
+		"feature-flags",
+		"feature-toggles",
+		"ab-testing",
+		"remote-functions",
+		"rollout",
+		"canary-deployment"
+	],
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -12,7 +29,7 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run && npm run test:e2e",
+		"test": "bun run test:unit -- --run && bun run test:e2e",
 		"test:e2e": "playwright test"
 	},
 	"files": [
@@ -33,6 +50,7 @@
 		}
 	},
 	"peerDependencies": {
+		"@sveltejs/kit": "^2.0.0",
 		"svelte": "^5.0.0"
 	},
 	"devDependencies": {
@@ -63,9 +81,6 @@
 		"vitest": "^3.2.4",
 		"vitest-browser-svelte": "^1.1.0"
 	},
-	"keywords": [
-		"svelte"
-	],
 	"dependencies": {
 		"valibot": "^1.1.0"
 	}

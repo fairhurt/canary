@@ -12,10 +12,7 @@ import { isInRollout } from '../utils/hash.js';
 /**
  * Check if a feature is enabled for the user (simplified version for hooks)
  */
-async function isFeatureEnabled(
-	event: RequestEvent,
-	featureKey: string
-): Promise<boolean> {
+async function isFeatureEnabled(event: RequestEvent, featureKey: string): Promise<boolean> {
 	const userContext = getUserContext(event);
 	const featureDef = await getFeatureConfig(featureKey);
 
