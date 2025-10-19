@@ -1,0 +1,42 @@
+{
+	"$schema": "./features.schema.json",
+	"features": {
+		"new-dashboard": {
+			"enabled": true,
+			"rollout": 100,
+			"description": "Redesigned dashboard with improved UX"
+		},
+		"beta-checkout": {
+			"enabled": true,
+			"rollout": 25,
+			"userGroups": ["beta", "internal"],
+			"description": "New checkout flow with one-click purchase"
+		},
+		"ab-test-homepage": {
+			"enabled": true,
+			"rollout": 100,
+			"variants": ["control", "variant-a", "variant-b"],
+			"defaultVariant": "control",
+			"description": "A/B test for homepage layout"
+		},
+		"experimental-feature": {
+			"enabled": false,
+			"userGroups": ["internal"],
+			"description": "Highly experimental feature for internal testing only"
+		}
+	},
+	"routes": {
+		"/dashboard": {
+			"feature": "new-dashboard",
+			"enabled": "/dashboard-v2",
+			"disabled": "/dashboard-v1"
+		},
+		"/checkout": {
+			"beta": "/checkout-beta",
+			"requiresGroup": "beta"
+		},
+		"/admin": {
+			"requiresGroup": "internal"
+		}
+	}
+}

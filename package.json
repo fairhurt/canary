@@ -1,0 +1,87 @@
+{
+	"name": "canary",
+	"version": "0.0.1",
+	"description": "Modern feature flagging library for SvelteKit with A/B testing, user groups, and remote functions",
+	"license": "MIT",
+	"author": "Tyson Fairhurst",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/fairhurt/canary.git"
+	},
+	"keywords": [
+		"svelte",
+		"sveltekit",
+		"feature-flags",
+		"feature-toggles",
+		"ab-testing",
+		"remote-functions",
+		"rollout",
+		"canary-deployment"
+	],
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build && npm run prepack",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"prepack": "svelte-kit sync && svelte-package && publint",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"format": "prettier --write .",
+		"lint": "prettier --check . && eslint .",
+		"test:unit": "vitest",
+		"test": "bun run test:unit -- --run && bun run test:e2e",
+		"test:e2e": "playwright test"
+	},
+	"files": [
+		"dist",
+		"!dist/**/*.test.*",
+		"!dist/**/*.spec.*"
+	],
+	"sideEffects": [
+		"**/*.css"
+	],
+	"svelte": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"svelte": "./dist/index.js"
+		}
+	},
+	"peerDependencies": {
+		"@sveltejs/kit": "^2.0.0",
+		"svelte": "^5.0.0"
+	},
+	"devDependencies": {
+		"@eslint/compat": "^1.4.0",
+		"@eslint/js": "^9.36.0",
+		"@playwright/test": "^1.55.1",
+		"@sveltejs/adapter-vercel": "^5.10.2",
+		"@sveltejs/kit": "^2.43.2",
+		"@sveltejs/package": "^2.5.4",
+		"@sveltejs/vite-plugin-svelte": "^6.2.0",
+		"@types/node": "^24",
+		"@vitest/browser": "^3.2.4",
+		"eslint": "^9.36.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.12.4",
+		"globals": "^16.4.0",
+		"mdsvex": "^0.12.6",
+		"playwright": "^1.55.1",
+		"prettier": "^3.6.2",
+		"prettier-plugin-svelte": "^3.4.0",
+		"publint": "^0.3.13",
+		"svelte": "^5.39.5",
+		"svelte-check": "^4.3.2",
+		"typescript": "^5.9.2",
+		"typescript-eslint": "^8.44.1",
+		"vite": "^7.1.7",
+		"vite-plugin-devtools-json": "^1.0.0",
+		"vitest": "^3.2.4",
+		"vitest-browser-svelte": "^1.1.0"
+	},
+	"dependencies": {
+		"valibot": "^1.1.0"
+	}
+}
