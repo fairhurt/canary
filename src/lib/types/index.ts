@@ -26,7 +26,7 @@ export interface FeatureDefinition {
 export interface RouteDefinition {
 	/** Route to redirect to if feature is enabled */
 	enabled?: string;
-	/** Route to redirect to if feature is disabled */
+	/** Route to redirect to if feature is disabled, or if the user is not in `requiresGroup` */
 	disabled?: string;
 	/** Route to redirect to for specific user groups */
 	[key: string]: string | undefined;
@@ -80,7 +80,12 @@ export type ConfigProvider = () => Promise<FeatureFlagsConfig> | FeatureFlagsCon
  * Options for initializing the feature flags library
  */
 export interface FeatureFlagsOptions {
-	/** Custom configuration provider (overrides static JSON) */
+	/** Static configuration, e.g. imported from your `features.config.json` */
+	config?: FeatureFlagsConfig;
+	/**
+	 * Custom configuration provider for dynamic configs. Takes precedence over
+	 * `config`, which is then only used as the fallback if the provider fails
+	 */
 	configProvider?: ConfigProvider;
 	/** Enable debug mode for development */
 	debug?: boolean;
@@ -90,15 +95,6 @@ export interface FeatureFlagsOptions {
 	groupsCookie?: string;
 	/** Cookie name for variant assignments */
 	variantsCookie?: string;
-	/** Cache TTL in seconds for dynamic configs (default: 300) */
+	/** Cache TTL in seconds for dynamic configs (default: 300, 0 disables caching) */
 	cacheTTL?: number;
-}
-
-/**
- * Internal state for the feature flags library
- */
-export interface FeatureFlagsState {
-	config: FeatureFlagsConfig;
-	options: Required<FeatureFlagsOptions>;
-	configLoadedAt?: number;
 }

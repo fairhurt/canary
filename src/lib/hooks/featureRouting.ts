@@ -1,111 +1,76 @@
 /**
- * Server hook for handling feature-based route redirects
- * Add this to your hooks.server.ts file
+ * Server hook that keeps the visitor's identity stable and handles
+ * feature-based route redirects. Add this to your hooks.server.ts file
  */
 
 import { redirect } from '@sveltejs/kit';
-import type { Handle, RequestEvent } from '@sveltejs/kit';
-import { getRouteConfig, getFeatureConfig } from '../utils/configLoader.js';
-import { getUserContext, isUserInGroup } from '../utils/userContext.js';
-import { isInRollout } from '../utils/hash.js';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { loadConfig, getFeature } from '../utils/configLoader.js';
+import { ensureUserId, getUserContext, isUserInGroup } from '../utils/userContext.js';
+import { evaluateFeature } from '../utils/evaluate.js';
 
-/**
- * Check if a feature is enabled for the user (simplified version for hooks)
- */
-async function isFeatureEnabled(event: RequestEvent, featureKey: string): Promise<boolean> {
-	const userContext = getUserContext(event);
-	const featureDef = await getFeatureConfig(featureKey);
+/** Keys of a route definition that are options rather than group names */
+const RESERVED_ROUTE_KEYS = new Set(['feature', 'requiresGroup', 'enabled', 'disabled']);
 
-	if (!featureDef || !featureDef.enabled) {
-		return false;
-	}
-
-	// Check user group requirements
-	if (featureDef.userGroups && featureDef.userGroups.length > 0) {
-		const hasRequiredGroup = featureDef.userGroups.some((group) =>
-			userContext.groups.includes(group)
-		);
-		if (!hasRequiredGroup) {
-			return false;
-		}
-	}
-
-	// Check rollout percentage
-	const rollout = featureDef.rollout ?? 100;
-	if (!isInRollout(userContext.userId, featureKey, rollout)) {
-		return false;
-	}
-
-	return true;
+function normalizePath(pathname: string): string {
+	return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
 }
 
 /**
  * Handle feature-based route redirects
- * This hook should be added to your hooks.server.ts sequence
+ *
+ * This hook also persists the visitor's user ID cookie on their first request.
+ * Without it, visitors who have never joined a group get a new ID (and so a new
+ * rollout bucket and A/B variant) on every request.
  *
  * @example
  * ```ts
  * import { sequence } from '@sveltejs/kit/hooks';
- * import { handleFeatureRouting } from 'canary/hooks';
+ * import { handleFeatureRouting } from 'sveltekit-canary';
  *
  * export const handle = sequence(handleFeatureRouting);
  * ```
  */
 export const handleFeatureRouting: Handle = async ({ event, resolve }) => {
-	const routeConfig = await getRouteConfig();
-	const currentPath = event.url.pathname;
+	ensureUserId(event);
+
+	const config = await loadConfig();
+	const routes = config.routes;
+	const currentPath = normalizePath(event.url.pathname);
 
 	// Check if current route has feature flag routing configured
-	const routeDef = routeConfig[currentPath];
+	const routeDef = routes && Object.hasOwn(routes, currentPath) ? routes[currentPath] : undefined;
 
 	if (routeDef) {
 		const userContext = getUserContext(event);
 
-		// Check if route requires a specific user group
-		if (routeDef.requiresGroup) {
-			if (!isUserInGroup(userContext, routeDef.requiresGroup)) {
-				// User doesn't have required group - check for group-specific redirect
-				const groupRedirect = routeDef[routeDef.requiresGroup];
-				if (groupRedirect && typeof groupRedirect === 'string') {
-					redirect(307, groupRedirect);
-				}
-				// Or just block access
-				redirect(307, '/');
+		const redirectTo = (target: string | undefined) => {
+			if (target && normalizePath(target) !== currentPath) {
+				redirect(307, target);
 			}
+		};
 
-			// User has required group - check for group-specific route
-			const groupRoute = routeDef[routeDef.requiresGroup];
-			if (groupRoute && typeof groupRoute === 'string' && groupRoute !== currentPath) {
-				redirect(307, groupRoute);
-			}
+		// Check if route requires a specific user group
+		if (routeDef.requiresGroup && !isUserInGroup(userContext, routeDef.requiresGroup)) {
+			// Send non-members to the `disabled` route if there is one, otherwise home
+			redirectTo(routeDef.disabled ?? '/');
 		}
 
 		// Check if route has feature flag-based routing
 		if (routeDef.feature) {
-			const featureEnabled = await isFeatureEnabled(event, routeDef.feature);
+			const { enabled } = evaluateFeature(
+				routeDef.feature,
+				getFeature(config, routeDef.feature),
+				userContext
+			);
 
-			if (featureEnabled && routeDef.enabled && routeDef.enabled !== currentPath) {
-				// Feature is enabled, redirect to enabled route
-				redirect(307, routeDef.enabled);
-			} else if (!featureEnabled && routeDef.disabled && routeDef.disabled !== currentPath) {
-				// Feature is disabled, redirect to disabled route
-				redirect(307, routeDef.disabled);
-			}
+			redirectTo(enabled ? routeDef.enabled : routeDef.disabled);
 		}
 
-		// Check for user group-specific routes (e.g., beta users)
+		// Check for user group-specific routes (e.g. `"beta": "/checkout-beta"`)
 		for (const group of userContext.groups) {
-			const groupRoute = routeDef[group];
-			if (
-				groupRoute &&
-				typeof groupRoute === 'string' &&
-				groupRoute !== currentPath &&
-				group !== 'feature' &&
-				group !== 'requiresGroup' &&
-				group !== 'enabled' &&
-				group !== 'disabled'
-			) {
-				redirect(307, groupRoute);
+			if (!RESERVED_ROUTE_KEYS.has(group) && Object.hasOwn(routeDef, group)) {
+				redirectTo(routeDef[group]);
 			}
 		}
 	}

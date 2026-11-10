@@ -1,19 +1,47 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { loadConfig, invalidateCache, initConfigLoader } from './configLoader.js';
-import type { ConfigProvider } from '../types/index.js';
+import type { ConfigProvider, FeatureFlagsConfig } from '../types/index.js';
+import demoConfig from '../../features.config.json' with { type: 'json' };
 
 describe('configLoader', () => {
 	beforeEach(() => {
-		invalidateCache();
+		initConfigLoader({ config: demoConfig });
+	});
+
+	describe('loadConfig without any config', () => {
+		it('should fall back to an empty config', async () => {
+			initConfigLoader();
+			const config = await loadConfig();
+
+			expect(config.features).toEqual({});
+		});
 	});
 
 	describe('loadConfig with static config', () => {
-		it('should load the default static config', async () => {
+		it('should load the static config', async () => {
 			const config = await loadConfig();
 
 			expect(config).toBeDefined();
 			expect(config.features).toBeDefined();
 			expect(typeof config.features).toBe('object');
+		});
+
+		it('should reject an invalid static config at init', () => {
+			expect(() =>
+				initConfigLoader({
+					config: { features: { broken: { enabled: 'yes' } } } as unknown as FeatureFlagsConfig
+				})
+			).toThrow(/boolean "enabled"/);
+		});
+
+		it('should reject a defaultVariant that is not one of the variants', () => {
+			expect(() =>
+				initConfigLoader({
+					config: {
+						features: { test: { enabled: true, variants: ['a', 'b'], defaultVariant: 'c' } }
+					}
+				})
+			).toThrow(/defaultVariant/);
 		});
 
 		it('should include predefined features', async () => {
@@ -26,7 +54,7 @@ describe('configLoader', () => {
 		});
 
 		it('should cache the config', async () => {
-			initConfigLoader({ cacheTTL: 300 });
+			initConfigLoader({ config: demoConfig, cacheTTL: 300 });
 			const config1 = await loadConfig();
 			const config2 = await loadConfig();
 
@@ -34,7 +62,7 @@ describe('configLoader', () => {
 		});
 
 		it('should refresh cache after TTL', async () => {
-			initConfigLoader({ cacheTTL: 0.001 }); // 1ms TTL
+			initConfigLoader({ config: demoConfig, cacheTTL: 0.001 }); // 1ms TTL
 			const config1 = await loadConfig();
 
 			// Wait for TTL to expire
@@ -125,9 +153,68 @@ describe('configLoader', () => {
 		});
 	});
 
+	describe('provider edge cases', () => {
+		const valid: FeatureFlagsConfig = { features: { test: { enabled: true } } };
+
+		it('should not cache when cacheTTL is 0', async () => {
+			const provider = vi.fn().mockResolvedValue(valid);
+
+			initConfigLoader({ configProvider: provider, cacheTTL: 0 });
+			await loadConfig();
+			await loadConfig();
+
+			expect(provider).toHaveBeenCalledTimes(2);
+		});
+
+		it('should share one provider call between concurrent loads', async () => {
+			const provider = vi.fn().mockResolvedValue(valid);
+
+			initConfigLoader({ configProvider: provider });
+			const [a, b] = await Promise.all([loadConfig(), loadConfig()]);
+
+			expect(provider).toHaveBeenCalledOnce();
+			expect(a).toBe(b);
+		});
+
+		it('should fall back to the static config when the provider fails', async () => {
+			const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+			const provider = vi.fn().mockRejectedValue(new Error('offline'));
+
+			initConfigLoader({ config: demoConfig, configProvider: provider });
+			const config = await loadConfig();
+
+			expect(config.features['new-dashboard']).toBeDefined();
+			error.mockRestore();
+		});
+
+		it('should keep serving the last good config when a refresh fails', async () => {
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			const provider = vi.fn().mockResolvedValueOnce(valid).mockRejectedValue(new Error('offline'));
+
+			initConfigLoader({ configProvider: provider, cacheTTL: 0 });
+			await loadConfig();
+			const config = await loadConfig();
+
+			expect(config).toBe(valid);
+			warn.mockRestore();
+		});
+
+		it('should not retry a failing provider on every request', async () => {
+			const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+			const provider = vi.fn().mockRejectedValue(new Error('offline'));
+
+			initConfigLoader({ configProvider: provider, cacheTTL: 300 });
+			await loadConfig();
+			await loadConfig();
+
+			expect(provider).toHaveBeenCalledOnce();
+			error.mockRestore();
+		});
+	});
+
 	describe('invalidateCache', () => {
 		it('should clear the cache', async () => {
-			initConfigLoader({ cacheTTL: 300 });
+			initConfigLoader({ config: demoConfig, cacheTTL: 300 });
 			const config1 = await loadConfig();
 
 			invalidateCache();

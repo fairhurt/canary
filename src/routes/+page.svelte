@@ -6,6 +6,27 @@
 	<title>Canary - Feature Flags for SvelteKit</title>
 </svelte:head>
 
+{#snippet controlGroup()}
+	<div class="variant-box control">
+		<strong>🎯 Control Group</strong>
+		<p>You see the original experience (baseline)</p>
+	</div>
+{/snippet}
+
+{#snippet variantA()}
+	<div class="variant-box variant-a">
+		<strong>🔵 Variant A</strong>
+		<p>You see the blue variation with new CTA</p>
+	</div>
+{/snippet}
+
+{#snippet variantB()}
+	<div class="variant-box variant-b">
+		<strong>🟣 Variant B</strong>
+		<p>You see the purple variation with hero image</p>
+	</div>
+{/snippet}
+
 <main>
 	<h1>🐤 Canary Demo</h1>
 	<p class="subtitle">Feature Flagging for SvelteKit with Remote Functions</p>
@@ -48,26 +69,45 @@
 	<section>
 		<h2>2️⃣ Percentage Rollout</h2>
 		<p class="description">
-			Feature <code>beta-checkout</code> has a 25% rollout.
-			<strong>Users in beta/internal groups bypass rollout and get 100% access.</strong>
+			Feature <code>gradual-rollout</code> is enabled for 50% of visitors. Your user ID is hashed together
+			with the feature key, so you land in the same bucket on every visit.
+		</p>
+		<Feature flag="gradual-rollout">
+			<div class="card success">
+				<h3>🎲 You're in the rollout</h3>
+				<p>You are one of the 50% of visitors who get this feature.</p>
+				<p class="meta">Feature: <code>enabled: true</code>, <code>rollout: 50</code></p>
+			</div>
+
+			{#snippet fallback()}
+				<div class="card muted">
+					<h3>⏳ Not rolled out to you yet</h3>
+					<p>You are in the 50% of visitors who don't have this feature yet.</p>
+				</div>
+			{/snippet}
+		</Feature>
+	</section>
+
+	<!-- User Groups -->
+	<section>
+		<h2>3️⃣ Group-Gated Feature</h2>
+		<p class="description">
+			Feature <code>beta-checkout</code> lists <code>userGroups</code>, so
+			<strong>only members of the beta or internal group get it</strong>.
 		</p>
 		<Feature flag="beta-checkout">
 			<div class="card success">
 				<h3>🎉 Beta Checkout Unlocked!</h3>
 				<p>You have access to the new checkout flow!</p>
 				<p class="meta">
-					Feature: <code>enabled: true</code>, <code>rollout: 25</code>,
-					<code>userGroups: ["beta", "internal"]</code>
+					Feature: <code>enabled: true</code>, <code>userGroups: ["beta", "internal"]</code>
 				</p>
 			</div>
 
 			{#snippet fallback()}
 				<div class="card muted">
 					<h3>🔒 Beta Checkout Locked</h3>
-					<p>
-						This feature has a 25% rollout. Join the beta group to guarantee access, or you might be
-						randomly included!
-					</p>
+					<p>Join the beta group above to unlock this feature.</p>
 				</div>
 			{/snippet}
 		</Feature>
@@ -75,11 +115,11 @@
 
 	<!-- User Groups (Disabled Feature) -->
 	<section>
-		<h2>3️⃣ User Groups (Disabled Feature Override)</h2>
+		<h2>4️⃣ Disabled Feature Override</h2>
 		<p class="description">
 			Feature <code>experimental-feature</code> is disabled (<code>enabled: false</code>), but
-			<strong>internal group members can still access it</strong>. This tests that userGroups bypass
-			the enabled flag.
+			<strong>internal group members can still access it</strong>. Use this to test a feature in
+			production before turning it on for anyone else.
 		</p>
 		<Feature flag="experimental-feature">
 			<div class="card success">
@@ -101,13 +141,13 @@
 
 	<!-- A/B Testing -->
 	<section>
-		<h2>4️⃣ A/B Testing with Variants</h2>
+		<h2>5️⃣ A/B Testing with Variants</h2>
 		<p class="description">
 			Feature <code>ab-test-homepage</code> has 3 variants: control, variant-a, variant-b. Your variant
 			is assigned deterministically based on your user ID.
 		</p>
 		<Feature flag="ab-test-homepage">
-			{#snippet children({ variant }: { variant?: string })}
+			{#snippet children({ variant })}
 				<div
 					class="card"
 					class:variant-a={variant === 'variant-a'}
@@ -124,39 +164,25 @@
 			{/snippet}
 		</Feature>
 
-		<!-- Alternative variant display method -->
+		<!-- Alternative: one snippet per variant -->
 		<div class="card">
-			<h4>Alternative: Conditional rendering per variant</h4>
-			<p class="small">You can use if/else blocks to render different content for each variant.</p>
-			<Feature flag="ab-test-homepage">
-				{#snippet children({ variant })}
-					<div
-						class="variant-box"
-						class:control={variant === 'control'}
-						class:variant-a={variant === 'variant-a'}
-						class:variant-b={variant === 'variant-b'}
-					>
-						{#if variant === 'control'}
-							<strong>🎯 Control Group</strong>
-							<p>You see the original experience (baseline)</p>
-						{:else if variant === 'variant-a'}
-							<strong>🔵 Variant A</strong>
-							<p>You see the blue variation with new CTA</p>
-						{:else if variant === 'variant-b'}
-							<strong>🟣 Variant B</strong>
-							<p>You see the purple variation with hero image</p>
-						{/if}
-					</div>
-				{/snippet}
-			</Feature>
+			<h4>Alternative: one snippet per variant</h4>
+			<p class="small">
+				Pass a <code>variants</code> record to render a different snippet for each variant.
+			</p>
+			<Feature
+				flag="ab-test-homepage"
+				variants={{ control: controlGroup, 'variant-a': variantA, 'variant-b': variantB }}
+			/>
 		</div>
 	</section>
 
 	<!-- Loading & Error States -->
 	<section>
-		<h2>5️⃣ Loading & Error States</h2>
+		<h2>6️⃣ Loading & Error States</h2>
 		<p class="description">
-			Features can show custom loading and error states while checking flags.
+			Features can show custom loading and error states while checking flags. Without a
+			<code>loading</code> snippet the result is server-rendered, so there is nothing to wait for.
 		</p>
 		<Feature flag="new-dashboard">
 			{#snippet loading()}
@@ -174,10 +200,41 @@
 			{#snippet error(err)}
 				<div class="card error">
 					<h3>❌ Error</h3>
-					<p>Failed to check feature: {err.message}</p>
+					<p>Failed to check feature: {err instanceof Error ? err.message : String(err)}</p>
 				</div>
 			{/snippet}
 		</Feature>
+	</section>
+
+	<!-- Route Redirects -->
+	<section>
+		<h2>7️⃣ Route Redirects</h2>
+		<p class="description">
+			The <code>handleFeatureRouting</code> hook redirects requests based on the
+			<code>routes</code> config, before the page is rendered.
+		</p>
+		<div class="card">
+			<!-- Plain links with a full page load: the redirects happen on the server -->
+			<!-- eslint-disable svelte/no-navigation-without-resolve -->
+			<ul>
+				<li>
+					<a href="/dashboard" data-sveltekit-reload>/dashboard</a> → <code>/dashboard-v2</code>
+					while <code>new-dashboard</code> is enabled, otherwise <code>/dashboard-v1</code>
+				</li>
+				<li>
+					<a href="/checkout" data-sveltekit-reload>/checkout</a> → <code>/checkout-beta</code> for beta
+					members
+				</li>
+				<li>
+					<a href="/checkout-beta" data-sveltekit-reload>/checkout-beta</a> → back to
+					<code>/checkout</code> unless you are in the beta group
+				</li>
+				<li>
+					<a href="/admin" data-sveltekit-reload>/admin</a> → home unless you are in the internal group
+				</li>
+			</ul>
+			<!-- eslint-enable svelte/no-navigation-without-resolve -->
+		</div>
 	</section>
 
 	<!-- Testing Instructions -->
@@ -190,19 +247,27 @@
 					<strong>Basic Flag:</strong> Section 1 should always show "New Dashboard Enabled" (100% rollout)
 				</li>
 				<li>
-					<strong>Rollout Bypass:</strong> Click "Join beta" - Section 2 should unlock immediately without
-					page refresh (bypasses 25% rollout)
+					<strong>Rollout:</strong> Section 2 is on for half of all visitors. Open a private window to
+					get a new user ID and (maybe) a different result
 				</li>
 				<li>
-					<strong>Disabled Override:</strong> Click "Join internal" - Section 3 should appear
-					(overrides <code>enabled: false</code>)
+					<strong>Group Gate:</strong> Click "Join beta" - Section 3 should unlock immediately without
+					a page refresh
 				</li>
 				<li>
-					<strong>A/B Variants:</strong> Section 4 shows your assigned variant (consistent across refreshes)
+					<strong>Disabled Override:</strong> Click "Internal Team" - Section 4 should appear
+					(overrides
+					<code>enabled: false</code>)
+				</li>
+				<li>
+					<strong>A/B Variants:</strong> Section 5 shows your assigned variant (consistent across refreshes)
 				</li>
 				<li>
 					<strong>Group Toggle:</strong> Leave beta/internal - features should hide instantly without
-					refresh
+					a refresh
+				</li>
+				<li>
+					<strong>Redirects:</strong> Follow the links in Section 7 before and after joining a group
 				</li>
 			</ol>
 		</div>
@@ -213,8 +278,11 @@
 		<div class="card">
 			<h3>Quick Start</h3>
 			<ol>
-				<li>Configure features in <code>features.config.json</code></li>
-				<li>Initialize Canary in <code>hooks.server.ts</code></li>
+				<li>Define your features in <code>features.config.json</code></li>
+				<li>
+					Pass the config to <code>initCanary()</code> and add <code>handleFeatureRouting</code> in
+					<code>hooks.server.ts</code>
+				</li>
 				<li>Use the <code>&lt;Feature&gt;</code> component in your pages</li>
 				<li>Add beta toggles with <code>&lt;BetaToggle&gt;</code></li>
 			</ol>
@@ -409,7 +477,8 @@
 		font-size: 0.9em;
 	}
 
-	ol {
+	ol,
+	ul {
 		margin: 1rem 0;
 		padding-left: 1.5rem;
 	}

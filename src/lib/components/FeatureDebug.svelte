@@ -10,25 +10,11 @@
 
 	let { position = 'bottom-right', expanded = false }: Props = $props();
 
+	// svelte-ignore state_referenced_locally
 	let isExpanded = $state(expanded);
-	const userInfo = getUserInfo();
-
-	// Load config client-side isn't possible with our current setup
-	// We'll just show user info for now
-	// In a real implementation, you might want a separate remote function to get config
-
-	const positionClass = $derived(
-		position === 'bottom-right'
-			? 'bottom-2 right-2'
-			: position === 'bottom-left'
-				? 'bottom-2 left-2'
-				: position === 'top-right'
-					? 'top-2 right-2'
-					: 'top-2 left-2'
-	);
 </script>
 
-<div class="debug-panel {positionClass}" class:expanded={isExpanded}>
+<div class="debug-panel {position}" class:expanded={isExpanded}>
 	<button class="toggle" onclick={() => (isExpanded = !isExpanded)}>
 		{isExpanded ? '✕' : '🚩'} Canary Debug
 	</button>
@@ -36,9 +22,9 @@
 	{#if isExpanded}
 		<div class="content">
 			<h3>User Context</h3>
-			{#await userInfo}
-				<p>Loading...</p>
-			{:then info}
+			<svelte:boundary>
+				{@const info = await getUserInfo()}
+
 				<dl>
 					<dt>User ID:</dt>
 					<dd><code>{info.userId}</code></dd>
@@ -67,12 +53,18 @@
 						{/if}
 					</dd>
 				</dl>
-			{:catch error}
-				<p class="error">Error: {error.message}</p>
-			{/await}
+
+				{#snippet pending()}
+					<p>Loading...</p>
+				{/snippet}
+
+				{#snippet failed(error)}
+					<p class="error">Error: {error instanceof Error ? error.message : String(error)}</p>
+				{/snippet}
+			</svelte:boundary>
 
 			<div class="actions">
-				<button onclick={() => userInfo.refresh()}>Refresh</button>
+				<button onclick={() => getUserInfo().refresh()}>Refresh</button>
 			</div>
 		</div>
 	{/if}
@@ -87,6 +79,26 @@
 			-apple-system,
 			sans-serif;
 		font-size: 0.875rem;
+	}
+
+	.debug-panel.bottom-right {
+		bottom: 0.5rem;
+		right: 0.5rem;
+	}
+
+	.debug-panel.bottom-left {
+		bottom: 0.5rem;
+		left: 0.5rem;
+	}
+
+	.debug-panel.top-right {
+		top: 0.5rem;
+		right: 0.5rem;
+	}
+
+	.debug-panel.top-left {
+		top: 0.5rem;
+		left: 0.5rem;
 	}
 
 	.debug-panel:not(.expanded) {

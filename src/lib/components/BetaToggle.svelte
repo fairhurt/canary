@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { getUserInfo, joinGroup, leaveGroup } from '../features.remote.js';
+	import {
+		checkFeature,
+		checkFeatures,
+		getUserInfo,
+		joinGroup,
+		leaveGroup
+	} from '../features.remote.js';
 
 	interface Props {
 		/** The group name (e.g., 'beta', 'internal') */
@@ -12,21 +18,16 @@
 
 	let { group, label, class: className = '' }: Props = $props();
 
-	// Get user context - this will be refreshed by the command functions
-	const userInfo = getUserInfo();
-
 	let isLoading = $state(false);
 
 	async function toggleGroup() {
 		isLoading = true;
 		try {
-			const currentInfo = await userInfo;
-			if (currentInfo.groups.includes(group)) {
-				await leaveGroup(group);
-			} else {
-				await joinGroup(group);
-			}
-			// The command functions automatically refresh getUserInfo query
+			const { groups } = await getUserInfo();
+			const toggle = groups.includes(group) ? leaveGroup : joinGroup;
+
+			// Refresh the user info and every active feature check in the same round trip
+			await toggle(group).updates(getUserInfo, checkFeature, checkFeatures);
 		} catch (error) {
 			console.error('Failed to toggle group:', error);
 		} finally {
@@ -35,21 +36,24 @@
 	}
 </script>
 
-{#await userInfo}
-	<button disabled class={className}> Loading... </button>
-{:then info}
-	<button onclick={toggleGroup} disabled={isLoading} class={className}>
+<svelte:boundary>
+	{@const info = await getUserInfo()}
+	{@const isMember = info.groups.includes(group)}
+
+	<button onclick={toggleGroup} disabled={isLoading} aria-pressed={isMember} class={className}>
 		{#if isLoading}
 			...
-		{:else if info.groups.includes(group)}
+		{:else if isMember}
 			✓ {label || `Leave ${group}`}
 		{:else}
 			{label || `Join ${group}`}
 		{/if}
 	</button>
-{:catch}
-	<button disabled class={className}> Error loading status </button>
-{/await}
+
+	{#snippet failed()}
+		<button disabled class={className}>Error loading status</button>
+	{/snippet}
+</svelte:boundary>
 
 <style>
 	button {

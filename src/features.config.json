@@ -1,16 +1,20 @@
 {
-	"$schema": "./features.schema.json",
+	"$schema": "./lib/features.schema.json",
 	"features": {
 		"new-dashboard": {
 			"enabled": true,
 			"rollout": 100,
 			"description": "Redesigned dashboard with improved UX"
 		},
+		"gradual-rollout": {
+			"enabled": true,
+			"rollout": 50,
+			"description": "Feature that is being rolled out to half of all visitors"
+		},
 		"beta-checkout": {
 			"enabled": true,
-			"rollout": 25,
 			"userGroups": ["beta", "internal"],
-			"description": "New checkout flow with one-click purchase"
+			"description": "New checkout flow, only for the beta and internal groups"
 		},
 		"ab-test-homepage": {
 			"enabled": true,
@@ -32,8 +36,11 @@
 			"disabled": "/dashboard-v1"
 		},
 		"/checkout": {
-			"beta": "/checkout-beta",
-			"requiresGroup": "beta"
+			"beta": "/checkout-beta"
+		},
+		"/checkout-beta": {
+			"requiresGroup": "beta",
+			"disabled": "/checkout"
 		},
 		"/admin": {
 			"requiresGroup": "internal"

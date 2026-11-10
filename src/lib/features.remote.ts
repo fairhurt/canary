@@ -4,131 +4,104 @@
  */
 
 import * as v from 'valibot';
-import { query, command } from '$app/server';
-import { getRequestEvent } from '$app/server';
+import { query, command, getRequestEvent, requested } from '$app/server';
 import type { FeatureCheckResult } from './types/index.js';
-import { getFeatureConfig } from './utils/configLoader.js';
+import { loadConfig, getFeature } from './utils/configLoader.js';
 import {
 	getUserContext,
 	addUserToGroup,
 	removeUserFromGroup,
 	ensureUserId
 } from './utils/userContext.js';
-import { assignVariant, isInRollout } from './utils/hash.js';
+import { evaluateFeature } from './utils/evaluate.js';
+
+const featureKeySchema = v.pipe(v.string(), v.maxLength(256));
+const groupSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(64));
+
+/** Upper bounds on how many active queries a single command will refresh */
+const MAX_REFRESHED_FEATURES = 200;
+const MAX_REFRESHED_BATCHES = 20;
+
+/** A user can only hold this many groups, to keep the cookie within size limits */
+const MAX_GROUPS = 32;
 
 /**
  * Check if a feature is enabled for the current user
  * Returns the enabled status and assigned variant (if applicable)
  *
+ * Calls made in the same tick are batched into a single request.
+ *
  * Logic:
- * - If userGroups are specified:
- *   - Users in those groups can access the feature even if enabled=false
- *   - Users in those groups BYPASS rollout percentage (always get 100%)
- *   - This allows for internal/beta testing of disabled or partially rolled out features
+ * - If userGroups are specified, only members of those groups get the feature.
+ *   Members get it even if enabled=false, and regardless of the rollout percentage.
+ *   This allows for internal/beta testing of disabled or partially rolled out features
  * - If no userGroups are specified:
  *   - The enabled flag determines global access
  *   - Rollout percentage applies to all users
  */
-export const checkFeature = query(v.string(), async (featureKey): Promise<FeatureCheckResult> => {
-	const event = getRequestEvent();
-	const userContext = getUserContext(event);
-	const featureDef = await getFeatureConfig(featureKey);
+export const checkFeature = query.batch(featureKeySchema, async () => {
+	const config = await loadConfig();
+	const userContext = getUserContext(getRequestEvent());
 
-	// Feature doesn't exist
-	if (!featureDef) {
-		return {
-			enabled: false,
-			reason: 'Feature not found'
-		};
+	return (featureKey): FeatureCheckResult =>
+		evaluateFeature(featureKey, getFeature(config, featureKey), userContext);
+});
+
+/**
+ * Check multiple features at once
+ * Returns a record of feature key → result
+ */
+export const checkFeatures = query(v.array(featureKeySchema), async (featureKeys) => {
+	const config = await loadConfig();
+	const userContext = getUserContext(getRequestEvent());
+
+	const results: Record<string, FeatureCheckResult> = {};
+	for (const key of featureKeys) {
+		results[key] = evaluateFeature(key, getFeature(config, key), userContext);
 	}
-
-	// Check user group requirements first (groups can access disabled features)
-	if (featureDef.userGroups && featureDef.userGroups.length > 0) {
-		const hasRequiredGroup = featureDef.userGroups.some((group) =>
-			userContext.groups.includes(group)
-		);
-
-		if (!hasRequiredGroup) {
-			return {
-				enabled: false,
-				reason: 'User not in required group'
-			};
-		}
-
-		// User is in required group - they bypass rollout percentage
-		// and can access even if globally disabled
-		// Skip the rollout check for users in required groups
-	} else {
-		// No user groups specified - check global enabled flag
-		if (!featureDef.enabled) {
-			return {
-				enabled: false,
-				reason: 'Feature is globally disabled'
-			};
-		}
-
-		// Check rollout percentage for non-group users
-		const rollout = featureDef.rollout ?? 100;
-		if (!isInRollout(userContext.userId, featureKey, rollout)) {
-			return {
-				enabled: false,
-				reason: 'User not in rollout percentage'
-			};
-		}
-	}
-
-	// Handle A/B test variants
-	if (featureDef.variants && featureDef.variants.length > 0) {
-		// Check if user already has a persisted variant assignment
-		let variant = userContext.variants[featureKey];
-
-		// If not, calculate one deterministically (don't persist in query)
-		if (!variant) {
-			const rollout = featureDef.rollout ?? 100;
-			const calculatedVariant = assignVariant(
-				userContext.userId,
-				featureKey,
-				featureDef.variants,
-				rollout
-			);
-			variant = calculatedVariant || featureDef.defaultVariant || featureDef.variants[0];
-		}
-
-		return {
-			enabled: true,
-			variant,
-			reason: 'Feature enabled with variant'
-		};
-	}
-
-	// Feature is enabled, no variants
-	return {
-		enabled: true,
-		reason: 'Feature enabled'
-	};
+	return results;
 });
 
 /**
  * Get the current user's context (ID, groups, variants)
  */
 export const getUserInfo = query(async () => {
-	const event = getRequestEvent();
-	return getUserContext(event);
+	return getUserContext(getRequestEvent());
 });
+
+/**
+ * Group membership changes what features resolve to, so send fresh results back
+ * with the command response:
+ * - `getUserInfo` is always refreshed
+ * - feature checks are refreshed when the caller asks for them with
+ *   `joinGroup('beta').updates(checkFeature, checkFeatures)`
+ */
+async function refreshAfterGroupChange(): Promise<void> {
+	await Promise.all([
+		getUserInfo().refresh(),
+		requested(getUserInfo, 1).refreshAll(),
+		requested(checkFeature, MAX_REFRESHED_FEATURES).refreshAll(),
+		requested(checkFeatures, MAX_REFRESHED_BATCHES).refreshAll()
+	]);
+}
 
 /**
  * Add the current user to a beta/test group
  */
-export const joinGroup = command(v.string(), async (group) => {
+export const joinGroup = command(groupSchema, async (group) => {
 	const event = getRequestEvent();
 
 	// Ensure user ID is persisted
 	ensureUserId(event);
 
-	const context = addUserToGroup(event, group);
+	const { groups } = getUserContext(event);
+	if (!groups.includes(group) && groups.length >= MAX_GROUPS) {
+		await refreshAfterGroupChange();
+		return { success: false, groups };
+	}
 
-	// Refresh user info query so all components update
-	await getUserInfo().refresh();
+	const context = addUserToGroup(event, group);
+	await refreshAfterGroupChange();
 
 	return {
 		success: true,
@@ -139,84 +112,17 @@ export const joinGroup = command(v.string(), async (group) => {
 /**
  * Remove the current user from a beta/test group
  */
-export const leaveGroup = command(v.string(), async (group) => {
+export const leaveGroup = command(groupSchema, async (group) => {
 	const event = getRequestEvent();
 
 	// Ensure user ID is persisted
 	ensureUserId(event);
 
 	const context = removeUserFromGroup(event, group);
-
-	// Refresh user info query so all components update
-	await getUserInfo().refresh();
+	await refreshAfterGroupChange();
 
 	return {
 		success: true,
 		groups: context.groups
 	};
-});
-
-/**
- * Check multiple features at once (batch query)
- * More efficient than calling checkFeature multiple times
- */
-export const checkFeatures = query(v.array(v.string()), async (featureKeys) => {
-	const results: Record<string, FeatureCheckResult> = {};
-
-	for (const key of featureKeys) {
-		const event = getRequestEvent();
-		const userContext = getUserContext(event);
-		const featureDef = await getFeatureConfig(key);
-
-		if (!featureDef) {
-			results[key] = {
-				enabled: false,
-				reason: 'Feature not found'
-			};
-			continue;
-		}
-
-		// Check user group requirements first (groups can access disabled features)
-		if (featureDef.userGroups && featureDef.userGroups.length > 0) {
-			const hasRequiredGroup = featureDef.userGroups.some((group) =>
-				userContext.groups.includes(group)
-			);
-
-			if (!hasRequiredGroup) {
-				results[key] = {
-					enabled: false,
-					reason: 'User not in required group'
-				};
-				continue;
-			}
-			// User is in required group - they bypass rollout percentage
-		} else {
-			// No user groups specified - check global enabled flag
-			if (!featureDef.enabled) {
-				results[key] = {
-					enabled: false,
-					reason: 'Feature is globally disabled'
-				};
-				continue;
-			}
-
-			// Check rollout percentage for non-group users
-			const rollout = featureDef.rollout ?? 100;
-			if (!isInRollout(userContext.userId, key, rollout)) {
-				results[key] = {
-					enabled: false,
-					reason: 'User not in rollout percentage'
-				};
-				continue;
-			}
-		}
-
-		results[key] = {
-			enabled: true,
-			variant: userContext.variants[key],
-			reason: 'Feature enabled'
-		};
-	}
-
-	return results;
 });

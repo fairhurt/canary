@@ -2,7 +2,7 @@
  * Initialization utilities for Canary feature flags
  */
 
-import type { FeatureFlagsOptions } from './types/index.js';
+import type { FeatureFlagsConfig, FeatureFlagsOptions } from './types/index.js';
 import { initConfigLoader } from './utils/configLoader.js';
 import { initCookieNames } from './utils/userContext.js';
 
@@ -12,10 +12,11 @@ import { initCookieNames } from './utils/userContext.js';
  *
  * @example
  * ```ts
- * import { initCanary } from 'canary';
+ * import { initCanary } from 'sveltekit-canary';
+ * import config from './features.config.json';
  *
- * // With static JSON config (default)
- * initCanary();
+ * // With static JSON config
+ * initCanary({ config });
  *
  * // With custom config provider
  * initCanary({
@@ -59,7 +60,7 @@ export function initCanary(options?: FeatureFlagsOptions): void {
  *
  * @example
  * ```ts
- * import { defineConfig } from 'canary';
+ * import { defineConfig } from 'sveltekit-canary';
  *
  * export default defineConfig({
  *   features: {
@@ -71,8 +72,6 @@ export function initCanary(options?: FeatureFlagsOptions): void {
  * });
  * ```
  */
-export function defineConfig<T extends import('./types/index.js').FeatureFlagsConfig>(
-	config: T
-): T {
+export function defineConfig<T extends FeatureFlagsConfig>(config: T): T {
 	return config;
 }
