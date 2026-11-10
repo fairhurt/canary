@@ -25,14 +25,21 @@ export function hashString(str: string): number {
 }
 
 /**
+ * The user's position in a feature's rollout, in the range [0, 100).
+ * The user is included once the rollout percentage is above this value
+ */
+export function rolloutBucket(userId: string, featureKey: string): number {
+	return hashString(`${userId}:${featureKey}:rollout`) * 100;
+}
+
+/**
  * Check if user should be included in a percentage-based rollout
  */
 export function isInRollout(userId: string, featureKey: string, rollout: number): boolean {
 	if (rollout >= 100) return true;
 	if (!(rollout > 0)) return false;
 
-	const hash = hashString(`${userId}:${featureKey}:rollout`);
-	return hash * 100 < rollout;
+	return rolloutBucket(userId, featureKey) < rollout;
 }
 
 /**

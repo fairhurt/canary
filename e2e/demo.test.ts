@@ -1,36 +1,41 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const flag = (page: Page, key: string) => page.getByTestId(`flag-${key}`);
+
 /**
- * Click a group toggle and wait for it to flip. The button is server-rendered, so a
- * click can land before hydration has attached the handler: retry until it takes.
+ * Flip a group switch and wait for it to take. The switch is server-rendered, so a
+ * click can land before hydration has attached the handler: retry until it works.
  */
-async function toggleGroup(page: Page, from: string, to: string) {
+async function setGroup(page: Page, group: string, member: boolean) {
+	const toggle = page.getByRole('switch', { name: group });
+
 	await expect(async () => {
-		await page.getByRole('button', { name: from }).click({ timeout: 1000 });
-		await expect(page.getByRole('button', { name: to })).toBeVisible({ timeout: 2000 });
+		if ((await toggle.getAttribute('aria-checked')) !== String(member)) {
+			await toggle.click({ timeout: 1000 });
+		}
+		await expect(toggle).toHaveAttribute('aria-checked', String(member), { timeout: 2000 });
 	}).toPass();
 }
 
 test.describe('Canary demo', () => {
-	test('home page loads successfully', async ({ page }) => {
-		await page.goto('/');
-		await expect(page.locator('h1')).toContainText('Canary Demo');
+	test('home page loads without errors', async ({ page }) => {
+		const problems: string[] = [];
+		page.on('pageerror', (error) => problems.push(error.message));
+		page.on('console', (message) => {
+			if (message.type() === 'error' || message.type() === 'warning') problems.push(message.text());
+		});
+
+		await page.goto('/', { waitUntil: 'networkidle' });
+
+		await expect(page.locator('h1')).toContainText('Flip features');
+		expect(problems).toEqual([]);
 	});
 
 	test('all sections are present', async ({ page }) => {
 		await page.goto('/');
 
-		for (const name of [
-			/User Groups/,
-			/Basic Feature Flag/,
-			/Percentage Rollout/,
-			/Group-Gated Feature/,
-			/Disabled Feature Override/,
-			/A\/B Testing/,
-			/Route Redirects/,
-			/Test Scenarios/
-		]) {
-			await expect(page.getByRole('heading', { name, level: 2 })).toBeVisible();
+		for (const id of ['basic', 'rollout', 'groups', 'ab', 'routes', 'start']) {
+			await expect(page.locator(`section#${id} h2`)).toBeVisible();
 		}
 	});
 
@@ -39,7 +44,7 @@ test.describe('Canary demo', () => {
 
 		expect(html).toContain('New Dashboard Enabled');
 		expect(html).toContain('Beta Checkout Locked');
-		expect(html).toContain('A/B Test Active');
+		expect(html).toContain('Feature enabled with variant');
 		expect(html).not.toContain('Experimental Feature Active');
 	});
 
@@ -49,70 +54,106 @@ test.describe('Canary demo', () => {
 		const cookie = (await context.cookies()).find((c) => c.name === 'canary_user_id');
 		expect(cookie?.value).toMatch(/^user_/);
 		expect(cookie?.httpOnly).toBe(true);
+		await expect(page.getByTestId('user-id')).toHaveAttribute('title', cookie!.value);
 	});
 
 	test('rollout and A/B variant stay the same across reloads', async ({ page }) => {
 		const snapshot = async () => ({
-			variant: await page.getByText(/You're seeing:/).textContent(),
-			inRollout: await page.getByText("You're in the rollout").isVisible()
+			variant: await flag(page, 'ab-test-homepage').locator('.variant').textContent(),
+			rollout: await flag(page, 'gradual-rollout').getAttribute('data-enabled'),
+			verdict: await page.getByTestId('rollout-verdict').textContent()
 		});
 
 		await page.goto('/');
-		await expect(page.getByText('A/B Test Active')).toBeVisible();
 		const first = await snapshot();
+		expect(['control', 'variant-a', 'variant-b']).toContain(first.variant);
 
 		for (let i = 0; i < 3; i++) {
 			await page.reload();
-			await expect(page.getByText('A/B Test Active')).toBeVisible();
 			expect(await snapshot()).toEqual(first);
 		}
 	});
 
-	test('both ways of rendering variants agree', async ({ page }) => {
+	test('the flag board, variant tiles and Feature component agree', async ({ page }) => {
 		await page.goto('/');
 
-		const variant = (await page
-			.getByText(/You're seeing:/)
-			.locator('strong')
-			.textContent())!;
-		const label = { control: 'Control Group', 'variant-a': 'Variant A', 'variant-b': 'Variant B' }[
+		const variant = (await flag(page, 'ab-test-homepage').locator('.variant').textContent())!;
+		const hero = { control: 'classic hero', 'variant-a': 'blue hero', 'variant-b': 'violet hero' }[
 			variant
 		];
 
-		expect(label).toBeDefined();
-		await expect(page.getByText(label!)).toBeVisible();
+		await expect(page.getByTestId(`variant-${variant}`)).toContainText('you');
+		await expect(page.getByText(`The ${hero}`)).toBeVisible();
+
+		const inRollout = (await flag(page, 'gradual-rollout').getAttribute('data-enabled')) === 'true';
+		await expect(page.getByText("You're in the rollout")).toBeVisible({ visible: inRollout });
+	});
+
+	test('the rollout playground follows the slider', async ({ page }) => {
+		await page.goto('/', { waitUntil: 'networkidle' });
+		const verdict = page.getByTestId('rollout-verdict');
+		const slider = page.getByRole('slider');
+
+		await slider.fill('100');
+		await expect(verdict).toContainText('IN');
+
+		await slider.fill('0');
+		await expect(verdict).toContainText('OUT');
 	});
 
 	test('joining beta unlocks the feature without a page refresh', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.getByText('Beta Checkout Locked')).toBeVisible();
+		await expect(flag(page, 'beta-checkout')).toHaveAttribute('data-enabled', 'false');
 
-		await toggleGroup(page, 'Join beta', 'Leave beta');
+		await setGroup(page, 'beta', true);
 
 		await expect(page.getByText('Beta Checkout Unlocked')).toBeVisible();
+		await expect(flag(page, 'beta-checkout')).toHaveAttribute('data-enabled', 'true');
+		await expect(page.getByTestId('route-/checkout')).toContainText('/checkout-beta');
 
 		// Membership is stored in a cookie, so it survives a reload
 		await page.reload();
 		await expect(page.getByText('Beta Checkout Unlocked')).toBeVisible();
 
-		await toggleGroup(page, 'Leave beta', 'Join beta');
+		await setGroup(page, 'beta', false);
 		await expect(page.getByText('Beta Checkout Locked')).toBeVisible();
+		await expect(page.getByTestId('route-/checkout')).toContainText('stays put');
 	});
 
 	test('joining internal unlocks a globally disabled feature', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.getByText('Experimental Feature Active')).toBeHidden();
 
-		await toggleGroup(page, 'Internal Team', '✓ Internal Team');
+		await setGroup(page, 'internal', true);
 
 		await expect(page.getByText('Experimental Feature Active')).toBeVisible();
 		// internal is also one of the groups for beta-checkout
 		await expect(page.getByText('Beta Checkout Unlocked')).toBeVisible();
 	});
 
+	test('a new identity starts from scratch', async ({ page, context }) => {
+		const userId = async () =>
+			(await context.cookies()).find((c) => c.name === 'canary_user_id')?.value;
+
+		await page.goto('/');
+		await setGroup(page, 'beta', true);
+		const before = await userId();
+
+		await page.getByRole('button', { name: 'New identity' }).click();
+
+		await expect(page.getByRole('switch', { name: 'beta' })).toHaveAttribute(
+			'aria-checked',
+			'false'
+		);
+		await expect(page.getByText('Beta Checkout Locked')).toBeVisible();
+		expect(await userId()).not.toBe(before);
+		await expect(page.getByTestId('user-id')).toHaveAttribute('title', (await userId())!);
+	});
+
 	test('debug panel shows the user context', async ({ page }) => {
 		await page.goto('/');
-		await toggleGroup(page, 'Join beta', 'Leave beta');
+		await setGroup(page, 'beta', true);
 
 		await page.getByRole('button', { name: /Canary Debug/ }).click();
 
@@ -139,9 +180,9 @@ test.describe('route redirects', () => {
 
 	test('beta members are sent to the beta checkout', async ({ page }) => {
 		await page.goto('/');
-		await toggleGroup(page, 'Join beta', 'Leave beta');
+		await setGroup(page, 'beta', true);
 
-		await page.goto('/checkout');
+		await page.getByTestId('route-/checkout').getByRole('link').click();
 
 		await expect(page).toHaveURL('/checkout-beta');
 		await expect(page.getByRole('heading', { name: 'Beta Checkout' })).toBeVisible();
