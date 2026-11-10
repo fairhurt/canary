@@ -2,6 +2,8 @@
 
 A modern, type-safe feature flagging library for SvelteKit using [Remote Functions](https://svelte.dev/docs/kit/remote-functions).
 
+**[See the live demo →](https://canary-seven.vercel.app/)**
+
 ## Features
 
 - ✅ **Server-Side Logic** - All feature checks happen on the server using SvelteKit's remote functions
