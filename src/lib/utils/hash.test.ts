@@ -5,8 +5,8 @@ describe('hash utilities', () => {
 	describe('generateUserId', () => {
 		it('should generate a user ID with correct format', () => {
 			const userId = generateUserId();
-			// Format: user_{timestamp}_{random}
-			expect(userId).toMatch(/^user_\d+_[a-z0-9]+$/);
+			// Format: user_{uuid}
+			expect(userId).toMatch(/^user_[0-9a-f-]{36}$/);
 		});
 
 		it('should generate unique IDs', () => {
@@ -39,6 +39,14 @@ describe('hash utilities', () => {
 			const hash1 = hashString('user-123:feature-abc');
 			const hash2 = hashString('user-123:feature-xyz');
 			expect(hash1).not.toBe(hash2);
+		});
+
+		it('should always stay below 1', () => {
+			for (let i = 0; i < 5000; i++) {
+				const hash = hashString(`user-${i}:feature:variant`);
+				expect(hash).toBeGreaterThanOrEqual(0);
+				expect(hash).toBeLessThan(1);
+			}
 		});
 
 		it('should handle empty strings', () => {
@@ -122,6 +130,19 @@ describe('hash utilities', () => {
 		it('should handle 100% rollout', () => {
 			const variant = assignVariant('user-123', 'feature', variants, 100);
 			expect(variant).not.toBeNull();
+		});
+	});
+
+	describe('isInRollout edge cases', () => {
+		it('should never include a user whose hash is exactly 0 in a 0% rollout', () => {
+			// The empty string hashes to 0
+			expect(hashString('')).toBe(0);
+			expect(isInRollout('any-user', 'any-feature', 0)).toBe(false);
+		});
+
+		it('should treat invalid rollout values as 0%', () => {
+			expect(isInRollout('user-1', 'feature', Number.NaN)).toBe(false);
+			expect(isInRollout('user-1', 'feature', -5)).toBe(false);
 		});
 	});
 

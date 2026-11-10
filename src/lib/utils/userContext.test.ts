@@ -8,7 +8,7 @@ import {
 import type { RequestEvent } from '@sveltejs/kit';
 
 describe('userContext', () => {
-	let mockEvent: Partial<RequestEvent>;
+	let mockEvent: Pick<RequestEvent, 'cookies'>;
 	let mockCookies: Map<string, string>;
 
 	beforeEach(() => {
@@ -25,8 +25,8 @@ describe('userContext', () => {
 				},
 				getAll: () => [],
 				serialize: () => ''
-			}
-		} as Partial<RequestEvent>;
+			} as unknown as RequestEvent['cookies']
+		};
 	});
 
 	describe('getUserContext', () => {
@@ -84,12 +84,50 @@ describe('userContext', () => {
 			expect(context.groups).toEqual([]);
 		});
 
-		it('should handle invalid variants JSON gracefully', () => {
+		it('should handle invalid JSON in cookies gracefully', () => {
 			mockCookies.set('canary_user_id', 'user-123');
+			mockCookies.set('canary_groups', '[not-json');
 			mockCookies.set('canary_variants', 'invalid-json');
 
-			// Should throw since JSON.parse fails
-			expect(() => getUserContext(mockEvent as RequestEvent)).toThrow();
+			const context = getUserContext(mockEvent as RequestEvent);
+
+			expect(context.userId).toBe('user-123');
+			expect(context.groups).toEqual([]);
+			expect(context.variants).toEqual({});
+		});
+
+		it('should ignore cookie values of the wrong shape', () => {
+			mockCookies.set('canary_groups', JSON.stringify({ beta: true }));
+			mockCookies.set('canary_variants', JSON.stringify(['a', 'b']));
+
+			const context = getUserContext(mockEvent as RequestEvent);
+
+			expect(context.groups).toEqual([]);
+			expect(context.variants).toEqual({});
+		});
+
+		it('should drop non-string and duplicate entries', () => {
+			mockCookies.set('canary_groups', JSON.stringify(['beta', 42, null, 'beta']));
+			mockCookies.set('canary_variants', JSON.stringify({ a: 'x', b: 1 }));
+
+			const context = getUserContext(mockEvent as RequestEvent);
+
+			expect(context.groups).toEqual(['beta']);
+			expect(context.variants).toEqual({ a: 'x' });
+		});
+
+		it('should keep the same temporary ID for the whole request', () => {
+			const first = getUserContext(mockEvent as RequestEvent);
+			const second = getUserContext(mockEvent as RequestEvent);
+
+			expect(second.userId).toBe(first.userId);
+		});
+
+		it('should persist the temporary ID when ensureUserId is called later', () => {
+			const { userId } = getUserContext(mockEvent as RequestEvent);
+
+			expect(ensureUserId(mockEvent as RequestEvent)).toBe(userId);
+			expect(mockCookies.get('canary_user_id')).toBe(userId);
 		});
 
 		it('should not set cookies (read-only)', () => {
